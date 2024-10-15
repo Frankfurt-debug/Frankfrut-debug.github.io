@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duck Avoidance Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { background: lightblue; display: block; margin: auto; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Constants
+        const SCREEN_WIDTH = 800;
+        const SCREEN_HEIGHT = 600;
+        const DUCK_WIDTH = 50;
+        const DUCK_HEIGHT = 50;
+        const OBJECT_WIDTH = 50;
+        const OBJECT_HEIGHT = 50;
+        const OBJECT_FALL_SPEED = 5;
+        const GRAVITY = 1;
+        const JUMP_STRENGTH = 15;
+
+        // Colors
+        const WHITE = "white";
+        const BLACK = "black";
+        const BLUE = "blue";
+
+        // Duck object
+        const duck = {
+            x: SCREEN_WIDTH / 2,
+            y: SCREEN_HEIGHT - DUCK_HEIGHT - 10,
+            speed: 10,
+            isJumping: false,
+            jumpVelocity: 0,
+        };
+
+        const objects = [];
+        let score = 0;
+        let gameOver = false;
+
+        // Handle user input
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowLeft") {
+                duck.x = Math.max(0, duck.x - duck.speed);
+            }
+            if (event.key === "ArrowRight") {
+                duck.x = Math.min(SCREEN_WIDTH - DUCK_WIDTH, duck.x + duck.speed);
+            }
+            if (event.key === " ") {
+                if (!duck.isJumping) {
+                    duck.isJumping = true;
+                    duck.jumpVelocity = JUMP_STRENGTH;
+                }
+            }
+        });
+
+        // Add a new falling object
+        function addFallingObject() {
+            const objectX = Math.random() * (SCREEN_WIDTH - OBJECT_WIDTH);
+            objects.push({ x: objectX, y: 0, width: OBJECT_WIDTH, height: OBJECT_HEIGHT });
+        }
+
+        // Game update
+        function update() {
+            // Handle jumping
+            if (duck.isJumping) {
+                duck.y -= duck.jumpVelocity;
+                duck.jumpVelocity -= GRAVITY;
+                if (duck.y >= SCREEN_HEIGHT - DUCK_HEIGHT - 10) {
+                    duck.y = SCREEN_HEIGHT - DUCK_HEIGHT - 10; // Landing
+                    duck.isJumping = false;
+                }
+            }
+
+            // Update falling objects
+            for (let i = objects.length - 1; i >= 0; i--) {
+                const obj = objects[i];
+                obj.y += OBJECT_FALL_SPEED;
+
+                // Remove object if it goes off-screen
+                if (obj.y > SCREEN_HEIGHT) {
+                    objects.splice(i, 1);
+                    score++;
+                }
+
+                // Check for collisions
+                if (duck.x < obj.x + obj.width &&
+                    duck.x + DUCK_WIDTH > obj.x &&
+                    duck.y < obj.y + obj.height &&
+                    duck.y + DUCK_HEIGHT > obj.y) {
+                    if (!duck.isJumping) {
+                        gameOver = true;
+                    } else {
+                        // Allow jumping over the object
+                        if (duck.y + DUCK_HEIGHT >= obj.y) {
+                            objects.splice(i, 1);
+                            score++;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Game drawing
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = BLUE;
+            ctx.fillRect(duck.x, duck.y, DUCK_WIDTH, DUCK_HEIGHT);
+
+            objects.forEach((obj) => {
+                ctx.fillStyle = BLACK;
+                ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+            });
+
+            // Display score
+            ctx.fillStyle = BLACK;
+            ctx.font = "20px Arial";
+            ctx.fillText("Score: " + score, 10, 20);
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (!gameOver) {
+                update();
+                draw();
+                if (Math.random() < 0.03) addFallingObject(); // Add new object occasionally
+                requestAnimationFrame(gameLoop);
+            } else {
+                alert("Game Over! Your score: " + score);
+                document.location.reload();
+            }
+        }
+
+        gameLoop(); // Start the game loop
+    </script>
+</body>
+</html>
+
